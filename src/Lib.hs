@@ -28,4 +28,4 @@ d1p2_process x y = x + d1p2_fuel (read y)
 d1p2_fuel :: Int -> Int
 d1p2_fuel x | x > 0 = max (f x) 0 + d1p2_fuel (f x)
             | x < 1 = 0
-              where f x = floor ((fromIntegral x) / 3) - 2
+              where f x = floor (fromIntegral x / 3) - 2
