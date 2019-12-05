@@ -28,7 +28,7 @@ data Result = Memory {
 data Op = Add | Mult | In | Out | Stop | BrT | BrF | Lt | Eq deriving Show
 
 next = Prelude.drop
-set i v xs = take i xs ++ (v: (next (i + 1) xs))
+set i v xs = take i xs ++ (v: next (i + 1) xs)
 
 run :: IO ()
 run = do
@@ -95,22 +95,21 @@ p1_execute (Instr Add  c b (Addr a) i) r =
     Memory (set a (p1_eval b r + p1_eval c r) r) []
 p1_execute (Instr Mult c b (Addr a) i) r =
     Memory (set a (p1_eval b r * p1_eval c r) r) []
-p1_execute (Instr In   (Addr c) b a i) r =
-    Memory (set c (5) r)                         []
-p1_execute (Instr Out         c b a i) r =
-    Memory r ([p1_eval c r])
+-- p1_execute (Instr In   (Addr c) b a i) r = Memory (set c 1 r) [] -- Part 1
+p1_execute (Instr In   (Addr c) b a i) r = Memory (set c 5 r) []    -- Part 2
+p1_execute (Instr Out         c b a i) r = Memory r [p1_eval c r]
 p1_execute (Instr BrT         c b a i) r
-    | p1_eval c r /= 0 = Jump (p1_eval b r)
-    | otherwise        = Memory r []
+    | p1_eval c r /= 0                   = Jump (p1_eval b r)
+    | otherwise                          = Memory r []
 p1_execute (Instr BrF         c b a i) r
-    | p1_eval c r == 0 = Jump (p1_eval b r)
-    | otherwise        = Memory r []
+    | p1_eval c r == 0                   = Jump (p1_eval b r)
+    | otherwise                          = Memory r []
 p1_execute (Instr Lt     c b (Addr a) i) r
-    | p1_eval c r < p1_eval b r = Memory (set a (1) r) []
-    | otherwise                 = Memory (set a (0) r) []
+    | p1_eval c r < p1_eval b r          = Memory (set a 1 r) []
+    | otherwise                          = Memory (set a 0 r) []
 p1_execute (Instr Eq     c b (Addr a) i) r
-    | p1_eval c r == p1_eval b r = Memory (set a (1) r) []
-    | otherwise                  = Memory (set a (0) r) []
+    | p1_eval c r == p1_eval b r         = Memory (set a 1 r) []
+    | otherwise                          = Memory (set a 0 r) []
 
 p1_eval :: Param -> [Int] -> Int
 p1_eval (Addr  a) ys = ys!!a
