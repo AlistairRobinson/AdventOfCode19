@@ -11,6 +11,12 @@ data Instr = Instr {
     a :: Param
 } deriving Show
 
+data Program = Program {
+    pc   :: Int,
+    mem  :: [Int],
+    args :: [Int]
+} deriving Show
+
 data Param = Addr {
     pos :: Int
 } | Val {
@@ -19,8 +25,8 @@ data Param = Addr {
 
 data Result = Memory {
     state :: [Int],
-    inp   :: [Int],
-    out   :: [Int]
+    out   :: [Int],
+    inp   :: [Int]
 } | Jump {
     loc   :: Int
 }
@@ -75,13 +81,26 @@ run_ic n mem a = case res of
                    where ins = parse n (drop n mem)
                          res = execute ins mem a
 
+run_prog :: Program -> [Int]
+run_prog (Program n mem a) = run_ic n mem a
+
+yield_prog :: Program -> (Program, Int)
+yield_prog (Program n mem a) = case res of
+            Memory [] r  as -> ((Program n [] as), 0)
+            Memory m  [] as -> yield_prog (Program (n + op_length (o ins)) m as)
+            Memory m  r  as -> ((Program (n + op_length (o ins)) m as), head r)
+            Jump   l        -> yield_prog (Program l mem a)
+            where ins = parse n (drop n mem)
+                  res = execute ins mem a
+
 execute :: Instr -> [Int] -> [Int] -> Result
 execute (Instr Stop       _  _ _) r i = Memory [] [] i
 execute (Instr Add  c b (Addr a)) r i =
     Memory (set a (eval b r + eval c r) r) [] i
 execute (Instr Mult c b (Addr a)) r i =
     Memory (set a (eval b r * eval c r) r) [] i
-execute (Instr In   (Addr c) b a) r i = Memory (set c (head i) r) [] (tail i)   -- Part 2
+execute (Instr In   (Addr c) b a) r i =
+    Memory (set c (head i) r) [] (tail i)
 execute (Instr Out         c b a) r i = Memory r [eval c r] i
 execute (Instr BrT         c b a) r i
     | eval c r /= 0                   = Jump (eval b r)
