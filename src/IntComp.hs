@@ -39,28 +39,29 @@ set i v xs = take i xs ++ (v: next (i + 1) xs)
 parse :: Int -> [Int] -> Instr
 parse i []           = Instr Stop None None None
 parse i (x:c:b:a:xs) = Instr (op x)
-                          (if x `mod` 1000  >= 100   then Val c else Addr c)
-                          (if x `mod` 10000 >= 1000  then Val b else Addr b)
-                          (if x             >= 10000 then Val a else Addr a)
+                        (if x `mod` 1000  >= 100   then Val c else Addr c)
+                        (if x `mod` 10000 >= 1000  then Val b else Addr b)
+                        (if x             >= 10000 then Val a else Addr a)
 parse i (x:c:b:xs)   = Instr (op x)
-                          (if x `mod` 1000  >= 100   then Val c else Addr c)
-                          (if x `mod` 10000 >= 1000  then Val b else Addr b)
-                          None
+                        (if x `mod` 1000  >= 100   then Val c else Addr c)
+                        (if x `mod` 10000 >= 1000  then Val b else Addr b)
+                        None
 parse i (x:c:xs)     = Instr (op x)
-                          (if x `mod` 1000  >= 100   then Val c else Addr c)
-                          None None
+                        (if x `mod` 1000  >= 100   then Val c else Addr c)
+                        None None
 parse i (x:xs)       = Instr (op x) None None None
 
 op :: Int -> Op
-op x | x `mod` 100 == 1  = Add
-     | x `mod` 100 == 2  = Mult
-     | x `mod` 100 == 3  = In
-     | x `mod` 100 == 4  = Out
-     | x `mod` 100 == 5  = BrT
-     | x `mod` 100 == 6  = BrF
-     | x `mod` 100 == 7  = Lt
-     | x `mod` 100 == 8  = Eq
-     | x `mod` 100 == 99 = Stop
+op x = case x `mod` 100 of
+         1  -> Add
+         2  -> Mult
+         3  -> In
+         4  -> Out
+         5  -> BrT
+         6  -> BrF
+         7  -> Lt
+         8  -> Eq
+         99 -> Stop
 
 op_length :: Op -> Int
 op_length Add  = 4
@@ -86,22 +87,24 @@ run_prog (Program n mem a) = run_ic n mem a
 
 yield_prog :: Program -> (Program, Int)
 yield_prog (Program n mem a) = case res of
-            Memory [] r  as -> ((Program n [] as), 0)
+            Memory [] r  as -> (Program n [] as, 0)
             Memory m  [] as -> yield_prog (Program (n + op_length (o ins)) m as)
-            Memory m  r  as -> ((Program (n + op_length (o ins)) m as), head r)
+            Memory m  r  as -> (Program (n + op_length (o ins)) m as, head r)
             Jump   l        -> yield_prog (Program l mem a)
             where ins = parse n (drop n mem)
                   res = execute ins mem a
 
 execute :: Instr -> [Int] -> [Int] -> Result
-execute (Instr Stop       _  _ _) r i = Memory [] [] i
+execute (Instr Stop       _  _ _) r i =
+    Memory [] [] i
 execute (Instr Add  c b (Addr a)) r i =
     Memory (set a (eval b r + eval c r) r) [] i
 execute (Instr Mult c b (Addr a)) r i =
     Memory (set a (eval b r * eval c r) r) [] i
 execute (Instr In   (Addr c) b a) r i =
     Memory (set c (head i) r) [] (tail i)
-execute (Instr Out         c b a) r i = Memory r [eval c r] i
+execute (Instr Out         c b a) r i =
+    Memory r [eval c r] i
 execute (Instr BrT         c b a) r i
     | eval c r /= 0                   = Jump (eval b r)
     | otherwise                       = Memory r [] i

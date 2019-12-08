@@ -22,18 +22,14 @@ p1 x = show $ maximum $ p1_amp prog 5 0 []
 
 p1_amp :: [Int] -> Int -> Int -> [Int] -> [Int]
 p1_amp prog 0 i b = [i]
-p1_amp prog x i b = concat $ [p1_amp prog (x - 1)
+p1_amp prog x i b = concat [p1_amp prog (x - 1)
                               (head (run_ic 0 prog [a, i])) (a:b)
-                              | a <- [0..4], not (a `elem` b)]
+                              | a <- [0..4], a `notElem` b]
 
 p2 :: String -> String
-p2 x = show $ maximum $ [p2_amp (p2_process perms prog) 0
-                        | perms <- permutations [5..9]]
+p2 x = show $ maximum [p2_amp (map (\i -> Program 0 prog [i]) perms) 0
+                      | perms <- permutations [5..9]]
        where prog = map read $ splitOn "," x
-
-p2_process :: [Int] -> [Int] -> [Program]
-p2_process []     prog = []
-p2_process (i:is) prog = (Program 0 prog [i]) : (p2_process is prog)
 
 p2_amp :: [Program] -> Int -> Int
 p2_amp []     inp = inp

@@ -31,6 +31,6 @@ p1_execute xs ys | index xs 0 == 1 = p1_execute (next 4 xs) $ update c (a + b) y
                          next = Data.Sequence.drop
 
 p2 :: String -> String
-p2 x = show $ [(n, v) | n <- [0..99], v <- [0..99],
-               index (p1_execute (input n v) (input n v)) 0 == 19690720]
+p2 x = show [(n, v) | n <- [0..99], v <- [0..99],
+             index (p1_execute (input n v) (input n v)) 0 == 19690720]
        where input = p1_process $ fromList $ map read $ splitOn "," x
