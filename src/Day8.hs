@@ -16,10 +16,10 @@ run = do
     hClose file
 
 p1 :: String -> String
-p1 x = show $ last $ sort [(length (filter (/= 0) l),
-                           (length (filter (== 1) l)) *
-                           (length (filter (== 2) l)))
-                          | l <- (p1_input x)]
+p1 x = show $ maximum [(length (filter (/= 0) l),
+                       (length (filter (== 1) l)) *
+                       (length (filter (== 2) l)))
+                      | l <- (p1_input x)]
 
 p1_input :: String -> [[Int]]
 p1_input x = map (map digitToInt) $ chunksOf (25*6) x
