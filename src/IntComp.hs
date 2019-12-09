@@ -15,12 +15,14 @@ data Instr = Instr {
 } deriving Show
 
 -- | Program
---   Represents the state of execution of an IntCode program.
+--   Represents the state of execution of an IntCode program: a program counter
+--   `pc`, a relative address pointer `rel`, a memory state `mem` and a list of
+--   input arguments `args`.
 data Program = Program {
-    pc   :: Integer,
-    rel  :: Integer,
-    mem  :: [Integer],
-    args :: [Integer]
+    pc   :: !Integer,
+    rel  :: !Integer,
+    mem  :: ![Integer],
+    args :: ![Integer]
 } deriving Show
 
 -- | Param
@@ -36,7 +38,8 @@ data Param = Addr {
 
 -- | Result
 --   Represents the result of evaluating an IntCode instruction, either a
---   new memory state (Memory) or a jump in the program counter (Jump).
+--   new memory state (Memory), a jump in the program counter (Jump) or a
+--   shift in the position of the relative address pointer (Shift).
 data Result = Memory {
     state :: [Integer],
     out   :: [Integer],
@@ -45,24 +48,35 @@ data Result = Memory {
     loc   :: Integer
 } | Shift {
     loc   :: Integer
-}
+} deriving Show
 
+-- | Op
+--   Represents all possible IntCode operations.
 data Op = Add | Mult | In | Out | Stop | BrT | BrF | Lt | Eq | Mov deriving Show
 
+-- | pro
+--   Shorthand for type promotion from Int to Integer.
 pro :: Int -> Integer
 pro = toInteger
 
+-- | dem
+--   Shorthand for type demotion from Integer to Int.
 dem :: Integer -> Int
 dem = fromIntegral
 
 -- | set
 --   set takes an index `i`, a value `v` and a list `xs` and returns a new
---   list with `v` replacing the previous value at index `i` in `xs`.
+--   list with `v` replacing the previous value at index `i` in `xs` if the
+--   index is within the list, otherwise extends `xs` until its length is
+--   equal to `i` and appends `v`.
 set :: Integer -> Integer -> [Integer] -> [Integer]
 set i v xs | j < length xs = take j xs ++ (v: drop (j + 1) xs)
            | otherwise     = xs ++ (replicate (j - (length xs)) 0) ++ [v]
              where j = dem i
 
+-- | get
+--   get takes an index `i` and a list `xs` and returns the item stored at
+--   index `i` in `xs` if one exists or 0 if such an item does not exist.
 get :: Integer -> [Integer] -> Integer
 get i xs | j < length xs = xs !! j
          | otherwise     = 0
@@ -116,9 +130,10 @@ op_len Mov  = 2
 op_len Stop = 1
 
 -- | run_ic
---   run_ic takes a program counter `n`, a memory state `mem` and a list of
---   arguments `a` and evaluates the IntCode program stored in `mem` until the
---   program halts, returning a list of outputs from the program.
+--   run_ic takes a program counter `n`, a relative address pointer `q`, a
+--   memory state `mem` and a list of arguments `a` and evaluates the IntCode
+--   program stored in `mem` until the program halts, returning a list of
+--   outputs from the program.
 --   Recommendation: don't call this function directly, use `run_prog` instead.
 
 run_ic :: Integer -> Integer -> [Integer] -> [Integer] -> [Integer]
@@ -155,11 +170,9 @@ yield_prog (Program n q mem a) = case res of
               end = dem n
 
 -- | execute
---   execute takes an IntCode instruction, a memory state `r` and a list of
---   inputs `i` and returns a Result representing the outcome of evaluating the
---   instruction.
---   Throws an exception if the program attempts to write a value to a
---   non-address parameter.
+--   execute takes an IntCode instruction, a relative address pointer `r`, a
+--   memory state `r` and a list of inputs `i` and returns a Result
+--   representing the outcome of evaluating the instruction.
 execute :: Instr -> Integer -> [Integer] -> [Integer] -> Result
 execute (Instr Stop _ _ _) q r i = Memory [] [] i
 execute (Instr Add  c b a) q r i =
@@ -185,14 +198,17 @@ execute (Instr Eq   c b a) q r i
 execute (Instr Mov  c b a) q r i = Shift (q + (eval c q r))
 
 -- | eval
---   eval takes a parameter and a memory state and returns the value of
---   the parameter, either by looking up its value in the memory state
---   or simply unwrapping its constant value.
+--   eval takes a parameter, a relative address pointer `q` and a memory state
+--   `mem` and returns the value of the parameter, either by looking up its
+--   value in the memory state or simply unwrapping its constant value.
 eval :: Param -> Integer -> [Integer] -> Integer
 eval (Addr  a) q ys = get a ys
 eval (Val   v) q ys = v
 eval (Rel   s) q ys = get (q + s) ys
 
+-- | insert
+--   insert takes an address parameter, a value `v`, a relative address pointer
+--   `q` and a memory state `mem` and sets the item pointed to in memory to `v`
 insert :: Param -> Integer -> Integer -> [Integer] -> [Integer]
 insert (Addr a) v q xs = set  a      v xs
 insert (Rel  s) v q xs = set (q + s) v xs
