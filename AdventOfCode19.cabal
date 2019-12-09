@@ -28,7 +28,7 @@ source-repository head
 library
   exposed-modules:
       IntComp
-      Day8
+      Day9
   other-modules:
       Paths_AdventOfCode19
   hs-source-dirs:

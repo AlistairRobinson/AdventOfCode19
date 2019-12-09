@@ -1,7 +1,7 @@
 module Main where
 
 import IntComp
-import Day8
+import Day9
 
 main :: IO ()
 main = run
