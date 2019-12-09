@@ -18,8 +18,8 @@ run = do
 
 p1 :: String -> String
 p1 x = show $ run_prog (Program 0 0 prog [1])
-        where prog = map read $ splitOn "," x
+        where prog = conv $ map read $ splitOn "," x
 
 p2 :: String -> String
 p2 x = show $ run_prog (Program 0 0 prog [2])
-        where prog = map read $ splitOn "," x
+        where prog = conv $ map read $ splitOn "," x

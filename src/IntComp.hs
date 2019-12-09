@@ -4,6 +4,13 @@ import System.Environment
 import System.IO
 import Data.List.Split
 
+import qualified Data.Map as Map
+
+-- | Memory
+--   Represents the memory state of an IntCode program as a map of data indexes
+--   to data values, both of type Integer
+type Memory = Map.Map Integer Integer
+
 -- | Instr
 --   Represents a single IntCode instruction with an operation and a maximum of
 --   three parameters.
@@ -19,10 +26,10 @@ data Instr = Instr {
 --   `pc`, a relative address pointer `rel`, a memory state `mem` and a list of
 --   input arguments `args`.
 data Program = Program {
-    pc   :: !Integer,
-    rel  :: !Integer,
-    mem  :: ![Integer],
-    args :: ![Integer]
+    pc   :: Integer,
+    rel  :: Integer,
+    mem  :: Memory,
+    args :: [Integer]
 } deriving Show
 
 -- | Param
@@ -38,10 +45,10 @@ data Param = Addr {
 
 -- | Result
 --   Represents the result of evaluating an IntCode instruction, either a
---   new memory state (Memory), a jump in the program counter (Jump) or a
+--   new memory state (State), a jump in the program counter (Jump) or a
 --   shift in the position of the relative address pointer (Shift).
-data Result = Memory {
-    state :: [Integer],
+data Result = State {
+    state :: Memory,
     out   :: [Integer],
     inp   :: [Integer]
 } | Jump {
@@ -54,45 +61,31 @@ data Result = Memory {
 --   Represents all possible IntCode operations.
 data Op = Add | Mult | In | Out | Stop | BrT | BrF | Lt | Eq | Mov deriving Show
 
--- | pro
---   Shorthand for type promotion from Int to Integer.
-pro :: Int -> Integer
-pro = toInteger
-
--- | dem
---   Shorthand for type demotion from Integer to Int.
-dem :: Integer -> Int
-dem = fromIntegral
+-- | conv
+--   Shorthand for converting from an ordered List to a Memory state
+conv :: [Integer] -> Memory
+conv xs = Map.fromList $ zip [0..] xs
 
 -- | set
---   set takes an index `i`, a value `v` and a list `xs` and returns a new
---   list with `v` replacing the previous value at index `i` in `xs` if the
---   index is within the list, otherwise extends `xs` until its length is
---   equal to `i` and appends `v`.
-set :: Integer -> Integer -> [Integer] -> [Integer]
-set i v xs | j < length xs = take j xs ++ (v: drop (j + 1) xs)
-           | otherwise     = xs ++ (replicate (j - (length xs)) 0) ++ [v]
-             where j = dem i
+--   set takes an index `i`, a value `v` and a memory state `xs` and returns
+--   a new state with `v` replacing the previous value in memory.
+set :: Integer -> Integer -> Memory -> Memory
+set i v xs = Map.insert i v xs
 
 -- | get
---   get takes an index `i` and a list `xs` and returns the item stored at
---   index `i` in `xs` if one exists or 0 if such an item does not exist.
-get :: Integer -> [Integer] -> Integer
-get i xs | j < length xs = xs !! j
-         | otherwise     = 0
-           where j = dem i
+--   get takes an index `i` and a memory state `xs` and returns the item stored
+--   at index `i` in `xs` if one exists or 0 if such an item does not exist.
+get :: Integer -> Memory -> Integer
+get i xs = case Map.lookup i xs of
+            Just v  -> v
+            Nothing -> 0
 
 -- | parse
 --   parse takes a list of integers and parses the first valid IntCode
---   instruction with as many parameters as possible. Note that if a parameter
---   with fewer than the maximum number of arguments is parsed (e.g. Stop),
---   the computer ignores additional arguments during execution.
-parse :: Integer -> [Integer] -> Instr
-parse i []           = Instr Stop None None None
-parse i (x:c:b:a:xs) = Instr (op x) (param x 1 c) (param x 10 b) (param x 100 a)
-parse i (x:c:b:xs)   = Instr (op x) (param x 1 c) (param x 10 b)  None
-parse i (x:c:xs)     = Instr (op x) (param x 1 c)  None           None
-parse i (x:xs)       = Instr (op x)  None          None           None
+--   instruction with as many parameters as possible.
+parse :: [Integer] -> Instr
+parse (0:xs)       = Instr Stop    None          None           None
+parse (x:c:b:a:xs) = Instr (op x) (param x 1 c) (param x 10 b) (param x 100 a)
 
 param :: Integer -> Integer -> Integer -> Param
 param x y a = case (x `mod` (y * 1000)) `div` (y * 100) of
@@ -136,16 +129,15 @@ op_len Stop = 1
 --   outputs from the program.
 --   Recommendation: don't call this function directly, use `run_prog` instead.
 
-run_ic :: Integer -> Integer -> [Integer] -> [Integer] -> [Integer]
+run_ic :: Integer -> Integer -> Memory -> [Integer] -> [Integer]
 run_ic n q mem a = case res of
-                   Memory [] r  as -> r
-                   Memory m  [] as -> run_ic (n + op_len (o ins)) q m as
-                   Memory m  r  as -> r ++ (run_ic (n + op_len (o ins)) q m as)
-                   Jump   l        -> run_ic l q mem a
-                   Shift  l        -> run_ic (n + op_len (o ins)) l mem a
-                   where ins = parse n (drop end mem)
-                         res = execute ins q mem a
-                         end = dem n
+        State m r as -> if Map.null m  then r
+                        else if null r then run_ic (n + op_len (o ins)) q m as
+                        else (head r):(run_ic (n + op_len (o ins)) q m as)
+        Jump   l     -> run_ic l q mem a
+        Shift  l     -> run_ic (n + op_len (o ins)) l mem a
+        where ins = parse [get ind mem | ind <- [n..n + 4]]
+              res = execute ins q mem a
 
 -- | run_prog
 --   run_prog takes a program state and evaluates the IntCode program until it
@@ -161,48 +153,49 @@ run_prog (Program n q mem a) = run_ic n q mem a
 --   with the output `0`.
 yield_prog :: Program -> (Program, Integer)
 yield_prog (Program n q mem a) = case res of
-        Memory [] r  as -> (Program n q [] as, 0)
-        Memory m  [] as -> yield_prog (Program (n + op_len (o ins)) q m as)
-        Memory m  r  as -> (Program (n + op_len (o ins)) q m as, head r)
-        Jump   l        -> yield_prog (Program l q mem a)
-        Shift  l        -> yield_prog (Program (n + op_len (o ins)) l mem a)
-        where ins = parse n (drop end mem)
+        State m r  as -> if Map.null m then (Program n q (Map.empty) as, 0)
+                         else if null r then
+                            yield_prog (Program (n + op_len (o ins)) q m as)
+                         else (Program (n + op_len (o ins)) q m as, head r)
+        Jump   l       -> yield_prog (Program l q mem a)
+        Shift  l       -> yield_prog (Program (n + op_len (o ins)) l mem a)
+        where ins = parse [get ind mem | ind <- [n..n + 4]]
               res = execute ins q mem a
-              end = dem n
 
 -- | execute
 --   execute takes an IntCode instruction, a relative address pointer `r`, a
 --   memory state `r` and a list of inputs `i` and returns a Result
 --   representing the outcome of evaluating the instruction.
-execute :: Instr -> Integer -> [Integer] -> [Integer] -> Result
-execute (Instr Stop _ _ _) q r i = Memory [] [] i
+execute :: Instr -> Integer -> Memory -> [Integer] -> Result
+execute (Instr Stop _ _ _) q r i =
+    State (Map.empty) [] i
 execute (Instr Add  c b a) q r i =
-    Memory (insert a (eval b q r + eval c q r) q r) [] i
+    State (insert a (eval b q r + eval c q r) q r) [] i
 execute (Instr Mult c b a) q r i =
-    Memory (insert a (eval b q r * eval c q r) q r) [] i
+    State (insert a (eval b q r * eval c q r) q r) [] i
 execute (Instr In   c b a) q r i =
-    Memory (insert c (head i) q r) [] (tail i)
+    State (insert c (head i) q r) [] (tail i)
 execute (Instr Out  c b a) q r i =
-    Memory r [eval c q r] i
+    State r [eval c q r] i
 execute (Instr BrT  c b a) q r i
     | eval c q r /= 0            = Jump (eval b q r)
-    | otherwise                  = Memory r [] i
+    | otherwise                  = State r [] i
 execute (Instr BrF  c b a) q r i
     | eval c q r == 0            = Jump (eval b q r)
-    | otherwise                  = Memory r [] i
+    | otherwise                  = State r [] i
 execute (Instr Lt   c b a) q r i
-    | eval c q r < eval b q r    = Memory (insert a 1 q r) [] i
-    | otherwise                  = Memory (insert a 0 q r) [] i
+    | eval c q r < eval b q r    = State (insert a 1 q r) [] i
+    | otherwise                  = State (insert a 0 q r) [] i
 execute (Instr Eq   c b a) q r i
-    | eval c q r == eval b q r   = Memory (insert a 1 q r) [] i
-    | otherwise                  = Memory (insert a 0 q r) [] i
+    | eval c q r == eval b q r   = State (insert a 1 q r) [] i
+    | otherwise                  = State (insert a 0 q r) [] i
 execute (Instr Mov  c b a) q r i = Shift (q + (eval c q r))
 
 -- | eval
 --   eval takes a parameter, a relative address pointer `q` and a memory state
 --   `mem` and returns the value of the parameter, either by looking up its
 --   value in the memory state or simply unwrapping its constant value.
-eval :: Param -> Integer -> [Integer] -> Integer
+eval :: Param -> Integer -> Memory -> Integer
 eval (Addr  a) q ys = get a ys
 eval (Val   v) q ys = v
 eval (Rel   s) q ys = get (q + s) ys
@@ -210,6 +203,6 @@ eval (Rel   s) q ys = get (q + s) ys
 -- | insert
 --   insert takes an address parameter, a value `v`, a relative address pointer
 --   `q` and a memory state `mem` and sets the item pointed to in memory to `v`
-insert :: Param -> Integer -> Integer -> [Integer] -> [Integer]
+insert :: Param -> Integer -> Integer -> Memory -> Memory
 insert (Addr a) v q xs = set  a      v xs
 insert (Rel  s) v q xs = set (q + s) v xs
