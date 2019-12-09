@@ -138,13 +138,14 @@ op_len Stop = 1
 
 run_ic :: Integer -> Integer -> [Integer] -> [Integer] -> [Integer]
 run_ic n q mem a = case res of
-                    Memory [] r as -> r
-                    Memory m  r as -> r ++ (run_ic (n + op_len (o ins)) q m as)
-                    Jump   l       -> run_ic l q mem a
-                    Shift  l       -> run_ic (n + op_len (o ins)) l mem a
-                    where ins = parse n (drop end mem)
-                          res = execute ins q mem a
-                          end = dem n
+                   Memory [] r  as -> r
+                   Memory m  [] as -> run_ic (n + op_len (o ins)) q m as
+                   Memory m  r  as -> r ++ (run_ic (n + op_len (o ins)) q m as)
+                   Jump   l        -> run_ic l q mem a
+                   Shift  l        -> run_ic (n + op_len (o ins)) l mem a
+                   where ins = parse n (drop end mem)
+                         res = execute ins q mem a
+                         end = dem n
 
 -- | run_prog
 --   run_prog takes a program state and evaluates the IntCode program until it
