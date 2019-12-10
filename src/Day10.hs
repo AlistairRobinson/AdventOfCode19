@@ -30,7 +30,7 @@ run = do
 
 p1 :: String -> String
 p1 inp = show $ (p1_process s)
-         where s = Map.fromList $ zip [(x, y) | y <- [0..19], x <- [0..19]] inp
+         where s = Map.fromList $ zip [(x, y) | y <- [0..30], x <- [0..30]] inp
 
 p1_process :: Space -> (Int, Vector)
 p1_process s = maximum $ [(length (p1_visible s a) - 1, a)
