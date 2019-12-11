@@ -22,9 +22,13 @@ run = do
     hClose file
 
 p1 :: String -> String
-p1 x = show $ length (Map.toList m)
+p1 x = p1_display m
        where prog = conv $ map read $ splitOn "," x
              m    = p1_run (Map.empty) (0, 0) (Program 0 0 prog []) 0
+
+p1_display :: Space -> String
+p1_display s = intercalate "\n" $ chunksOf 150 [p2_lookup s (x, y)
+                                               | y <- [-50..50], x <- [-75..74]]
 
 p1_run :: Space -> Point -> Program -> Integer -> Space
 p1_run s p (Program n q m a) d
