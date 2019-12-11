@@ -131,13 +131,13 @@ op_len Stop = 1
 
 run_ic :: Integer -> Integer -> Memory -> [Integer] -> [Integer]
 run_ic n q mem a = case res of
-        State m r as -> if Map.null m  then r
-                        else if null r then run_ic (n + op_len (o ins)) q m as
-                        else (head r):(run_ic (n + op_len (o ins)) q m as)
-        Jump   l     -> run_ic l q mem a
-        Shift  l     -> run_ic (n + op_len (o ins)) l mem a
-        where ins = parse [get ind mem | ind <- [n..n + 4]]
-              res = execute ins q mem a
+    State m r as | Map.null m -> r
+                 | null r     -> run_ic (n + op_len (o ins)) q m as
+                 | otherwise  -> r ++ (run_ic (n + op_len (o ins)) q m as)
+    Jump   l    -> run_ic l q mem a
+    Shift  l    -> run_ic (n + op_len (o ins)) l mem a
+    where ins = parse [get ind mem | ind <- [n..n + 4]]
+          res = execute ins q mem a
 
 -- | run_prog
 --   run_prog takes a program state and evaluates the IntCode program until it
@@ -153,14 +153,13 @@ run_prog (Program n q mem a) = run_ic n q mem a
 --   with the output `0`.
 yield_prog :: Program -> (Program, Integer)
 yield_prog (Program n q mem a) = case res of
-        State m r  as -> if Map.null m then (Program n q (Map.empty) as, 0)
-                         else if null r then
-                            yield_prog (Program (n + op_len (o ins)) q m as)
-                         else (Program (n + op_len (o ins)) q m as, head r)
-        Jump   l       -> yield_prog (Program l q mem a)
-        Shift  l       -> yield_prog (Program (n + op_len (o ins)) l mem a)
-        where ins = parse [get ind mem | ind <- [n..n + 4]]
-              res = execute ins q mem a
+    State m r  as | Map.null m -> (Program n q (Map.empty) as, 0)
+                  | null r     -> yield_prog (Program (n + op_len (o ins)) q m as)
+                  | otherwise  -> Program (n + op_len (o ins)) q m as, head r)
+    Jump   l     -> yield_prog (Program l q mem a)
+    Shift  l     -> yield_prog (Program (n + op_len (o ins)) l mem a)
+    where ins = parse [get ind mem | ind <- [n..n + 4]]
+          res = execute ins q mem a
 
 -- | execute
 --   execute takes an IntCode instruction, a relative address pointer `r`, a

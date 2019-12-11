@@ -17,8 +17,8 @@ run = do
     args <- getArgs
     file <- openFile (head args) ReadMode
     contents <- hGetContents file
-    putStr (p1 contents ++ "\n")
-    putStr (p2 contents ++ "\n")
+    putStrLn (p1 contents)
+    putStrLn (p2 contents)
     hClose file
 
 p1 :: String -> String
@@ -49,17 +49,17 @@ p1_rotate d 1 = (d + 1) `mod` 4
 
 p1_sense :: Space -> Point -> Integer
 p1_sense s p = case Map.lookup p s of
-                    Just '#' -> 1
+                    Just '█' -> 1
                     _        -> 0
 
 p1_paint :: Space -> Point -> Integer -> Space
-p1_paint s p 0 = Map.insert p '.' s
-p1_paint s p 1 = Map.insert p '#' s
+p1_paint s p 0 = Map.insert p ' ' s
+p1_paint s p 1 = Map.insert p '█' s
 
 p2 :: String -> String
 p2 x = p2_display m
        where prog = conv $ map read $ splitOn "," x
-             s    = Map.insert (0, 0) '#' (Map.empty)
+             s    = Map.insert (0, 0) '█' (Map.empty)
              m    = p1_run s (0, 0) (Program 0 0 prog []) 0
 
 p2_lookup :: Space -> Point -> Char
