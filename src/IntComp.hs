@@ -155,7 +155,7 @@ yield_prog :: Program -> (Program, Integer)
 yield_prog (Program n q mem a) = case res of
     State m r  as | Map.null m -> (Program n q (Map.empty) as, 0)
                   | null r     -> yield_prog (Program (n + op_len (o ins)) q m as)
-                  | otherwise  -> Program (n + op_len (o ins)) q m as, head r)
+                  | otherwise  -> (Program (n + op_len (o ins)) q m as, head r)
     Jump   l     -> yield_prog (Program l q mem a)
     Shift  l     -> yield_prog (Program (n + op_len (o ins)) l mem a)
     where ins = parse [get ind mem | ind <- [n..n + 4]]
