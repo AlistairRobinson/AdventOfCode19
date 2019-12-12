@@ -39,6 +39,7 @@ library
       Day9
       Day10
       Day11
+      Day12
   other-modules:
       Paths_AdventOfCode19
   hs-source-dirs:
