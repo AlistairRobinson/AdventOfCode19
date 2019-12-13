@@ -161,6 +161,12 @@ yield_prog (Program n q mem a) = case res of
     where ins = parse [get ind mem | ind <- [n..n + 4]]
           res = execute ins q mem a
 
+-- | iter_prog
+--   iter_prog takes a program state and evaluates the IntCode program until
+--   it requires an input value, at which point the computer will freeze the
+--   program's execution and return its current state, along with all outputs.
+--   If the program halts, the computer will return the state of the completed
+--   program with all outputs.
 iter_prog :: Program -> [Integer] -> (Program, [Integer])
 iter_prog (Program n q mem []) rs = case (o ins) of
     In -> (Program n q mem [], rs)
@@ -168,6 +174,8 @@ iter_prog (Program n q mem []) rs = case (o ins) of
     where ins = parse [get ind mem | ind <- [n..n + 4]]
 iter_prog p@(Program n q mem (a:as)) rs = iter_prog' p rs
 
+-- | iter_prog'
+--   iter_prog' is a helper function for iter_prog
 iter_prog' :: Program -> [Integer] -> (Program, [Integer])
 iter_prog' (Program n q mem a) rs = case res of
     State m r as | Map.null m -> (Program n q m a, rs)
