@@ -161,6 +161,23 @@ yield_prog (Program n q mem a) = case res of
     where ins = parse [get ind mem | ind <- [n..n + 4]]
           res = execute ins q mem a
 
+iter_prog :: Program -> [Integer] -> (Program, [Integer])
+iter_prog (Program n q mem []) rs = case (o ins) of
+    In -> (Program n q mem [], rs)
+    _  -> iter_prog' (Program n q mem []) rs
+    where ins = parse [get ind mem | ind <- [n..n + 4]]
+iter_prog p@(Program n q mem (a:as)) rs = iter_prog' p rs
+
+iter_prog' :: Program -> [Integer] -> (Program, [Integer])
+iter_prog' (Program n q mem a) rs = case res of
+    State m r as | Map.null m -> (Program n q m a, rs)
+                 | null r     -> iter_prog (Program (n + op_len (o ins)) q m as) rs
+                 | otherwise  -> iter_prog (Program (n + op_len (o ins)) q m as) (rs ++ r)
+    Jump   l    -> iter_prog (Program l q mem a) rs
+    Shift  l    -> iter_prog (Program (n + op_len (o ins)) l mem a) rs
+    where ins = parse [get ind mem | ind <- [n..n + 4]]
+          res = execute ins q mem a
+
 -- | execute
 --   execute takes an IntCode instruction, a relative address pointer `r`, a
 --   memory state `r` and a list of inputs `i` and returns a Result
