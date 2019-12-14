@@ -60,7 +60,7 @@ p2 x = show $ foldl lcm 1 [length (p2_period [a, b, c, d] axis) + 1
 
 p2_run :: [Moon] -> [Moon]
 p2_run m = map (p1_move) grav
-    where grav = map (\r -> foldl (\z a -> p1_grav z a) r m) m
+    where grav = map (\r -> foldl p1_grav r m) m
 
 p2_period :: [Moon] -> ([Moon] -> [State]) -> [[State]]
 p2_period m a = takeWhile (/= (a m)) (map a (iterate (p2_run) (p2_run m)))

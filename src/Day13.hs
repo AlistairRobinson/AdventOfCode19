@@ -22,7 +22,7 @@ run = do
     hClose file
 
 p1 :: String -> String
-p1 x = p1_display $ foldl (\z a -> p1_render z a) (Map.empty) m
+p1 x = p1_display $ foldl p1_render (Map.empty) m
        where prog = conv $ map read $ splitOn "," x
              m    = chunksOf 3 $ run_prog (Program 0 0 prog [])
 
@@ -49,7 +49,7 @@ p1_display g = score ++ (intercalate "\n" $ chunksOf 43 $
 p2 :: String -> String
 p2 x = p1_display grid
        where prog = conv $ 2: tail(map read $ (splitOn "," x))
-             grid = p2_run (Program 0 0 prog []) (Map.empty)
+             grid = p2_run (Program 0 0 prog []) Map.empty
 
 p2_run :: Program -> Grid -> Grid
 p2_run p g | Map.null m = grid
@@ -57,11 +57,11 @@ p2_run p g | Map.null m = grid
            | x > x'     = p2_run (Program n q m [1])  grid
            | otherwise  = p2_run (Program n q m [0])  grid
            where (Program n q m a, r) = iter_prog p []
-                 grid = Map.union (foldl (\z a -> p1_render z a) (Map.empty) (chunksOf 3 r)) g
+                 grid = Map.union (foldl p1_render Map.empty (chunksOf 3 r)) g
                  (x, _) = p2_find "0" grid
                  (x',_) = p2_find "=" grid
 
 p2_find :: String -> Grid -> Point
-p2_find s g | length l == 0 = (0, 0)
-            | otherwise     = head l
+p2_find s g | null l    = (0, 0)
+            | otherwise = head l
             where l = [p | p <- Map.keys g, Map.lookup p g == (Just s)]
