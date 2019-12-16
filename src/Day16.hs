@@ -24,12 +24,12 @@ p1_base = [0, 1, 0, -1]
 
 p1_process :: Int -> [Int] -> [Int]
 p1_process 0 xs = xs
-p1_process i xs = [((abs . sum) (zipWith (*) (p1_process (i - 1) xs)
-                   (tail (cycle (concatMap (replicate n) p1_base))))) `mod` 10
+p1_process i xs = [(abs . sum) (zipWith (*) (p1_process (i - 1) xs)
+                   (tail (cycle (concatMap (replicate n) p1_base)))) `mod` 10
                   | n <- [1..(length xs)]]
 
 p2 :: String -> String
-p2 x = show $ take 8 $ reverse $ (p2_process 100 local)
+p2 x = show $ take 8 $ reverse (p2_process 100 local)
         where input = map digitToInt (concat (replicate 10000 x))
               ndrop = read (take 7 x)
               local = reverse (drop ndrop input)
