@@ -18,7 +18,8 @@ import IntComp
 -- import Day14
 -- import Day15
 -- import Day16
-import Day17
+-- import Day17
+import Day18
 
 main :: IO ()
 main = run

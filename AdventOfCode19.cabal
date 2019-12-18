@@ -45,6 +45,7 @@ library
       Day15
       Day16
       Day17
+      Day18
   other-modules:
       Paths_AdventOfCode19
   hs-source-dirs:
