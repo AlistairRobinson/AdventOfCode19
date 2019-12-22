@@ -49,6 +49,7 @@ library
       Day19
       Day20
       Day21
+      Day22
   other-modules:
       Paths_AdventOfCode19
   hs-source-dirs:
@@ -57,7 +58,8 @@ library
       base >=4.7 && <5,
       split,
       sequence,
-      containers
+      containers,
+      arithmoi
   default-language: Haskell2010
 
 executable AdventOfCode19-exe
