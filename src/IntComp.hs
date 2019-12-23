@@ -59,7 +59,7 @@ data Result = State {
 
 -- | Op
 --   Represents all possible IntCode operations.
-data Op = Add | Mult | In | Out | Stop | BrT | BrF | Lt | Eq | Mov deriving Show
+data Op = Add | Mult | In | Out | Stop | BrT | BrF | Lt | Eq | Mov deriving (Show, Eq)
 
 -- | conv
 --   Shorthand for converting from an ordered List to a Memory state
@@ -107,6 +107,7 @@ op x = case x `mod` 100 of
          8  -> Eq
          9  -> Mov
          99 -> Stop
+         _  -> error (show x)
 
 -- | op_len
 --   op_len takes an Op and returns the size of its corresponding instruction.
@@ -186,6 +187,19 @@ iter_prog' (Program n q mem a) rs = case res of
     where ins = parse [get ind mem | ind <- [n..n + 4]]
           res = execute ins q mem a
 
+-- | step_prog
+--   step_prog evaluates exactly 1 step of a program and returns the new
+--   program state, the instruction performed and the result (if any)
+step_prog :: Program -> (Program, Instr, Maybe Integer)
+step_prog (Program n q mem a) = case res of
+    State m r as | Map.null m -> (Program n q m a, ins, Nothing)
+                 | null r     -> (Program (n + op_len (o ins)) q m as, ins, Nothing)
+                 | otherwise  -> (Program (n + op_len (o ins)) q m as, ins, Just (head r))
+    Jump   l    -> (Program l q mem a, ins, Nothing)
+    Shift  l    -> (Program (n + op_len (o ins)) l mem a, ins, Nothing)
+    where ins = parse [get ind mem | ind <- [n..n + 4]]
+          res = execute ins q mem a
+
 -- | execute
 --   execute takes an IntCode instruction, a relative address pointer `r`, a
 --   memory state `r` and a list of inputs `i` and returns a Result
@@ -197,6 +211,8 @@ execute (Instr Add  c b a) q r i =
     State (insert a (eval b q r + eval c q r) q r) [] i
 execute (Instr Mult c b a) q r i =
     State (insert a (eval b q r * eval c q r) q r) [] i
+execute (Instr In   c b a) q r [] =
+    State (insert c (-1) q r) [] []
 execute (Instr In   c b a) q r i =
     State (insert c (head i) q r) [] (tail i)
 execute (Instr Out  c b a) q r i =
