@@ -24,7 +24,8 @@ import IntComp
 -- import Day20
 -- import Day21
 -- import Day22
-import Day23
+-- import Day23
+import Day24
 
 main :: IO ()
 main = run
