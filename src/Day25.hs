@@ -20,17 +20,18 @@ run = do
     hClose file
     hClose file'
 
-items = ["mug\n", "ornament\n", "hypercube\n", "astronaut ice cream\n", "wreath\n", "mouse\n", "prime number\n", "easter egg\n"]
+p1_items :: [String]
+p1_items = ["mug\n", "ornament\n", "hypercube\n", "astronaut ice cream\n", "wreath\n", "mouse\n", "prime number\n", "easter egg\n"]
 
-drops = subsequences (map (\x -> "drop " ++ x) items)
+p1_drops :: [[String]]
+p1_drops = subsequences (map (\x -> "drop " ++ x) p1_items)
 
-reset = map (\x -> "take " ++ x) items
-
-done = map (\x -> x ++ ["north\n"] ++ reset) drops
+p1_done :: [[String]]
+p1_done = map (\x -> x ++ ["north\n"] ++ (map (\x -> "take " ++ x) p1_items)) p1_drops
 
 p1 :: String -> String -> String
 p1 x y = map (chr . fromIntegral) r
          where prog    = conv $ map read $ splitOn "," x
-               args    = (map (\s -> (filter (/= '\r') s) ++ "\n") (lines y)) ++ (concat done)
+               args    = map (\s -> (filter (/= '\r') s) ++ "\n") (lines y)
                instr   = concat $ map (map (fromIntegral . ord)) args
                (p', r) = iter_prog (Program 0 0 prog instr) []
